@@ -489,6 +489,117 @@ void vtkFitsReader::ReadHeader() {
     
 }
 
+double vtkFitsReader::GetRMS() {
+    return rms;
+}
+
+void vtkFitsReader::CalculateRMS() {
+    ReadHeader();
+    
+    vtkStructuredPoints *output = (vtkStructuredPoints *) this->GetOutput();
+    fitsfile *fptr;
+    int status = 0, nfound = 0, anynull = 0;
+    long fpixel, nbuffer, npixels, ii, n=0;
+    double meansquare=0;
+    const int buffsize = 1000;
+    
+    float nullval, buffer[buffsize];
+    char *fn=new char[filename.length() + 1];
+    strcpy(fn, filename.c_str());
+    
+    if ( fits_open_file(&fptr, fn, READONLY, &status) )
+        printerror( status );
+    
+    delete []fn;
+    vtkFloatArray *scalars = vtkFloatArray::New();
+    if ( fits_read_keys_lng(fptr, "NAXIS", 1, 3, naxes, &nfound, &status) )
+        printerror( status );
+    
+    npixels  = naxes[0] * naxes[1] * naxes[2];
+    n=npixels;
+    
+    fpixel   = 1;
+    nullval  = 0;
+    datamin  = 1.0E30;
+    datamax  = -1.0E30;
+
+    output->SetDimensions(naxes[0], naxes[1], naxes[2]);
+    output->SetOrigin(0.0, 0.0, 0.0);
+    
+    scalars->Allocate(npixels);
+    int bad=0;
+    int slice;
+    int num=0;
+
+
+
+    minmaxslice=new float*[naxes[2]];
+    for(int i=0;i< naxes[2];i++)
+    {
+        minmaxslice[i] = new float[2];
+        minmaxslice[i][0]= 1.0E30;
+        minmaxslice[i][1]= -1.0E30;
+    }
+
+    //For every pixel
+    while (npixels > 0) {
+        nbuffer = npixels;
+        if (npixels > buffsize)
+            nbuffer = buffsize;
+        
+        if ( fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,
+                           buffer, &anynull, &status) )
+            printerror( status );
+
+
+        for (ii = 0; ii < nbuffer; ii++)  {
+            // slice= (num/(naxes[0]*naxes[1]))%(naxes[0]*naxes[1]);
+            slice= (num/ (naxes[0]*naxes[1]) );
+            num++;
+
+            // qDebug()<<"npixel: "<<num <<" è sulla slice "<< slice <<" x: "<<naxes[0]<<" y: "<<naxes[1]<<" z: "<<naxes[2];
+
+            if (std::isnan(buffer[ii]))
+                buffer[ii] = -1000000.0;
+            scalars->InsertNextValue(buffer[ii]);
+
+            if ( buffer[ii]!=-1000000.0)
+            {
+                if ( buffer[ii] < datamin )
+                    datamin = buffer[ii];
+                if ( buffer[ii] > datamax   )
+                    datamax = buffer[ii];
+
+                if ( buffer[ii] < minmaxslice[slice][0] )
+                    minmaxslice[slice][0] = buffer[ii];
+                if ( buffer[ii] > minmaxslice[slice][1]   )
+                    minmaxslice[slice][1] = buffer[ii];
+
+                //meansquare+=buffer[ii]*buffer[ii];
+                //  media+=buffer[ii];
+                meansquare+=buffer[ii]*buffer[ii];
+
+            }
+            else
+                bad++;
+        }
+        
+        npixels -= nbuffer;
+        fpixel  += nbuffer;
+    }
+
+    n=n-bad;
+    double means=meansquare/n;
+    rms=sqrt(means);
+    // sigma=qSqrt(sigma/n);
+
+    if ( fits_close_file(fptr, &status) )
+        printerror( status );
+    
+    output->GetPointData()->SetScalars(scalars);
+    return;
+}
+
 // Note: from cookbook.c in fitsio distribution.
 void vtkFitsReader::printerror(int status) {
 

@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
  
   auto reader = vtkSmartPointer<vtkFitsReader>::New();
   reader->SetFileName(argv[1]);
+    reader->CalculateRMS();
    
     vtkStructuredPoints *out=reader->GetOutput();
 
@@ -77,8 +78,6 @@ int main(int argc, char* argv[])
     // outline
     vtkNew<vtkOutlineFilter> outlineF;
     outlineF->SetInputData(out);
-
-    
     vtkNew<vtkPolyDataMapper> outlineM;
     outlineM->SetInputConnection(outlineF->GetOutputPort());
     outlineM->ScalarVisibilityOff();
@@ -86,11 +85,10 @@ int main(int argc, char* argv[])
     outlineA->SetMapper(outlineM);
             
     // isosurface
-    vtkMarchingCubes *shellE = vtkMarchingCubes::New();
-    shellE->SetInputData(out);
+    auto shellE = vtkMarchingCubes::New();
+    shellE->SetInputData(reader->GetOutput());
     shellE->ComputeNormalsOn();
-    shellE->SetValue(0,0.2);
-
+    shellE->SetValue(0, 3*reader->GetRMS());
     vtkPolyDataMapper *shellM = vtkPolyDataMapper::New();
     shellM->SetInputConnection(shellE->GetOutputPort());
     shellM->ScalarVisibilityOff();

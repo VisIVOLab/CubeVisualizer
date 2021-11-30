@@ -44,6 +44,9 @@ public:
     float GetMin(){return datamin;}
     float GetMax(){return datamax;}
     
+    void CalculateRMS();
+    double GetRMS();
+    
     float GetCrval(int i){
         if(i<3)
             return crval[i];
