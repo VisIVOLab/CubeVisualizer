@@ -60,22 +60,7 @@ void vtkFitsReader::SetFileName(std::string name) {
     filename = name;
     this->Modified();
 }
-//----------------------------------------------------------------------------
-void vtkFitsReader::PrintSelf(ostream& os, vtkIndent indent)
-{
-    // this->Superclass::PrintSelf(os, indent);
-}
 
-void vtkFitsReader::PrintHeader(ostream& os, vtkIndent indent)
-{
-    // this->Superclass::PrintHeader(os, indent);
-
-}
-
-void vtkFitsReader::PrintTrailer(std::ostream& os , vtkIndent indent)
-{
-    // this->Superclass::PrintTrailer(os, indent);
-}
 
 //----------------------------------------------------------------------------
 vtkStructuredPoints* vtkFitsReader::GetOutput()
@@ -89,42 +74,7 @@ vtkStructuredPoints* vtkFitsReader::GetOutput(int port)
     return vtkStructuredPoints::SafeDownCast(this->GetOutputDataObject(port));
 }
 
-//----------------------------------------------------------------------------
-void vtkFitsReader::SetOutput(vtkDataObject* d)
-{
-    this->GetExecutive()->SetOutputData(0, d);
-}
 
-
-//----------------------------------------------------------------------------
-int vtkFitsReader::ProcessRequest(vtkInformation* request,
-                                  vtkInformationVector** inputVector,
-                                  vtkInformationVector* outputVector)
-{
-    // Create an output object of the correct type.
-    if(request->Has(vtkDemandDrivenPipeline::REQUEST_DATA_OBJECT()))
-    {
-        return this->RequestDataObject(request, inputVector, outputVector);
-    }
-    // generate the data
-    if(request->Has(vtkDemandDrivenPipeline::REQUEST_DATA()))
-    {
-        return this->RequestData(request, inputVector, outputVector);
-    }
-
-    if(request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
-    {
-        return this->RequestUpdateExtent(request, inputVector, outputVector);
-    }
-
-    // execute information
-    if(request->Has(vtkDemandDrivenPipeline::REQUEST_INFORMATION()))
-    {
-        return this->RequestInformation(request, inputVector, outputVector);
-    }
-
-    return this->Superclass::ProcessRequest(request, inputVector, outputVector);
-}
 
 //----------------------------------------------------------------------------
 int vtkFitsReader::FillOutputPortInformation(
@@ -136,152 +86,7 @@ int vtkFitsReader::FillOutputPortInformation(
 }
 
 
-//----------------------------------------------------------------------------
-int vtkFitsReader::RequestDataObject(
-        vtkInformation* vtkNotUsed(request),
-        vtkInformationVector** vtkNotUsed(inputVector),
-        vtkInformationVector* outputVector )
-{
-    for ( int i = 0; i < this->GetNumberOfOutputPorts(); ++i )
-    {
-        
-        ReadHeader();
-        fitsfile *fptr;
-        int status = 0, nfound = 0, anynull = 0;
-        long  fpixel, nbuffer, npixels, ii;
-        const int buffsize = 1000;
 
-        float nullval, buffer[buffsize];
-        vtkFloatArray *scalars = vtkFloatArray::New();
-
-        vtkInformation* outInfo = outputVector->GetInformationObject( i );
-        vtkStructuredPoints* output = vtkStructuredPoints::SafeDownCast(
-                    outInfo->Get( vtkDataObject::DATA_OBJECT() ) );
-        if ( ! output )
-        {
-            output = vtkStructuredPoints::New();
-            outInfo->Set( vtkDataObject::DATA_OBJECT(), output );
-            output->FastDelete();
-
-            //FITS READER CORE
-
-            char *fn=new char[filename.length() + 1];;
-            strcpy(fn, filename.c_str());
-
-            if ( fits_open_file(&fptr, fn, READONLY, &status) )
-                printerror( status );
-
-            delete []fn;
-
-            
-            if ( fits_read_keys_lng(fptr, "NAXIS", 1, 3, naxes, &nfound, &status) )
-                    printerror( status );
-
-
-
-            npixels  = naxes[0] * naxes[1] * naxes[2];
-            npix=npixels;
-            fpixel   = 1;
-            nullval  = 0;
-
-            output->SetDimensions(naxes[0], naxes[1], naxes[2]);
-            output->SetOrigin(1.0, 1.0, 1.0);
-
-            scalars->Allocate(npixels);
-
-            //For every pixel
-            while (npixels > 0)
-            {
-
-                        nbuffer = npixels;
-                        if (npixels > buffsize)
-                            nbuffer = buffsize;
-
-
-                        if ( fits_read_img(fptr, TFLOAT, fpixel, nbuffer, &nullval,
-                                           buffer, &anynull, &status) )
-                            printerror( status );
-                        float tmp;
-                        int index;
-                        for (ii = 0; ii < nbuffer; ii++)
-                        {
-
-                            if (std::isnan(buffer[ii]))
-                            {
-                                buffer[ii] = -1000000.0; // hack for now
-                            }
-                            //conversion
-                            //CVAL3 + (X - CPIX3)*CDEL3
-
-                            buffer[ii]=crval[2]/1000+(buffer[ii]-cpix[2])*cdelt[2]/1000;
-                            scalars->InsertNextValue(buffer[ii]);
-                          
-                        }
-
-                        npixels -= nbuffer;
-                        fpixel  += nbuffer;
-            }
-            
-
-        }
-
-        if ( fits_close_file(fptr, &status) )
-            printerror( status );
-
-        output->GetPointData()->SetScalars(scalars);
-
-        
-        std::cout<<"END FITS READ CORE"<<std::endl;
-        //END FITS READ CORE
-        this->GetOutputPortInformation( i )->Set(vtkDataObject::DATA_EXTENT_TYPE(), output->GetExtentType() );
-        
-
-    }
-
-    return 1;
-}
-
-//----------------------------------------------------------------------------
-int vtkFitsReader::RequestInformation(
-        vtkInformation* vtkNotUsed(request),
-        vtkInformationVector** vtkNotUsed(inputVector),
-        vtkInformationVector* vtkNotUsed(outputVector))
-{
-    // do nothing let subclasses handle it
-    return 1;
-}
-
-//----------------------------------------------------------------------------
-int vtkFitsReader::RequestUpdateExtent(
-        vtkInformation* vtkNotUsed(request),
-        vtkInformationVector** inputVector,
-        vtkInformationVector* vtkNotUsed(outputVector))
-{
-    int numInputPorts = this->GetNumberOfInputPorts();
-    for (int i=0; i<numInputPorts; i++)
-    {
-        int numInputConnections = this->GetNumberOfInputConnections(i);
-        for (int j=0; j<numInputConnections; j++)
-        {
-            vtkInformation* inputInfo = inputVector[i]->GetInformationObject(j);
-            inputInfo->Set(vtkStreamingDemandDrivenPipeline::EXACT_EXTENT(), 1);
-        }
-    }
-    return 1;
-}
-
-//----------------------------------------------------------------------------
-// This is the superclasses style of Execute method.  Convert it into
-// an imaging style Execute method.
-int vtkFitsReader::RequestData(
-        vtkInformation* vtkNotUsed(request),
-        vtkInformationVector** vtkNotUsed( inputVector ),
-        vtkInformationVector* vtkNotUsed(outputVector) )
-{
-
-    // do nothing let subclasses handle it
-    return 1;
-}
 
 void vtkFitsReader::ReadHeader() {
 
@@ -493,7 +298,7 @@ double vtkFitsReader::GetRMS() {
     return rms;
 }
 
-void vtkFitsReader::CalculateRMS() {
+void vtkFitsReader::ReadDataAndCalculateRMS() {
     ReadHeader();
     
     vtkStructuredPoints *output = (vtkStructuredPoints *) this->GetOutput();
@@ -597,6 +402,7 @@ void vtkFitsReader::CalculateRMS() {
         printerror( status );
     
     output->GetPointData()->SetScalars(scalars);
+
     return;
 }
 

@@ -59,21 +59,11 @@ int main(int argc, char* argv[])
   iren->SetRenderWindow(renWin);
     
 
- 
   auto reader = vtkSmartPointer<vtkFitsReader>::New();
   reader->SetFileName(argv[1]);
-    reader->CalculateRMS();
-   
-    vtkStructuredPoints *out=reader->GetOutput();
+  reader->ReadDataAndCalculateRMS();
 
-    std::cout<<out->GetNumberOfScalarComponents()<<std::endl;
-    std::cout<<out->GetNumberOfPoints()<<std::endl;
-    std::cout<<out->GetDimensions()[0]<<std::endl;
-    std::cout<<out->GetDimensions()[1]<<std::endl;
-    std::cout<<out->GetDimensions()[2]<<std::endl;
-    std::cout<<out->GetDimensions()[3]<<std::endl;
-    std::cout<<out->GetDimensions()[4]<<std::endl;
-    std::cout<<out->GetExtentType()<<std::endl;
+  vtkStructuredPoints *out=reader->GetOutput();
 
     // outline
     vtkNew<vtkOutlineFilter> outlineF;
@@ -85,7 +75,7 @@ int main(int argc, char* argv[])
     outlineA->SetMapper(outlineM);
             
     // isosurface
-    auto shellE = vtkMarchingCubes::New();
+    auto shellE = vtkFlyingEdges3D::New();
     shellE->SetInputData(reader->GetOutput());
     shellE->ComputeNormalsOn();
     shellE->SetValue(0, 3*reader->GetRMS());
@@ -96,12 +86,10 @@ int main(int argc, char* argv[])
     shellA->SetMapper(shellM);
     shellA->GetProperty()->SetColor(1.0, 0.5, 1.0);
 
-                    
     ren->AddActor(shellA);
     ren->AddActor(outlineA);
-
     
-  // Set a background color for the renderer
+    // Set a background color for the renderer
     ren->SetBackground(0.21,0.23,0.25);
 
 
@@ -109,10 +97,10 @@ int main(int argc, char* argv[])
   renWin->SetSize(1280 , 960);
   renWin->SetWindowName("FitsCubeDemo");
 
-    
   // Interact with the data.
   renWin->Render();
-    iren->Initialize();
+  iren->Initialize();
+    
 
   iren->Start();
 
