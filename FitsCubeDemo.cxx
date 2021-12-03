@@ -38,32 +38,31 @@
 //SetRequestedRenderModeToGPU
 int main(int argc, char* argv[])
 {
-  if (argc < 2)
-  {
-    cout << "Usage: " << argv[0] << "cube.fits" << endl;
-    return EXIT_FAILURE;
-  }
+    if (argc < 2)
+    {
+        cout << "Usage: " << argv[0] << "cube.fits" << endl;
+        return EXIT_FAILURE;
+    }
 
-  vtkNew<vtkNamedColors> colors;
+    vtkNew<vtkNamedColors> colors;
 
-  std::array<unsigned char, 4> bkg{{51, 77, 102, 255}};
-  colors->SetColor("BkgColor", bkg.data());
+    std::array<unsigned char, 4> bkg{{51, 77, 102, 255}};
+    colors->SetColor("BkgColor", bkg.data());
 
-  // Create the renderer, the render window, and the interactor. The renderer
-  // draws into the render window, the interactor enables mouse- and
-  // keyboard-based interaction with the scene.
-  vtkNew<vtkRenderer> ren;
-  vtkNew<vtkRenderWindow> renWin;
-  renWin->AddRenderer(ren);
-  vtkNew<vtkRenderWindowInteractor> iren;
-  iren->SetRenderWindow(renWin);
+    // Create the renderer, the render window, and the interactor. The renderer
+    // draws into the render window, the interactor enables mouse- and
+    // keyboard-based interaction with the scene.
+    vtkNew<vtkRenderer> ren;
+    vtkNew<vtkRenderWindow> renWin;
+    renWin->AddRenderer(ren);
+    vtkNew<vtkRenderWindowInteractor> iren;
+    iren->SetRenderWindow(renWin);
     
+    auto reader = vtkSmartPointer<vtkFitsReader>::New();
+    reader->SetFileName(argv[1]);
+    reader->ReadDataAndCalculateRMS();
 
-  auto reader = vtkSmartPointer<vtkFitsReader>::New();
-  reader->SetFileName(argv[1]);
-  reader->ReadDataAndCalculateRMS();
-
-  vtkStructuredPoints *out=reader->GetOutput();
+    vtkStructuredPoints *out=reader->GetOutput();
 
     // outline
     vtkNew<vtkOutlineFilter> outlineF;
@@ -93,17 +92,15 @@ int main(int argc, char* argv[])
     ren->SetBackground(0.21,0.23,0.25);
 
 
-  // Increase the size of the render window
-  renWin->SetSize(1280 , 960);
-  renWin->SetWindowName("FitsCubeDemo");
-
-  // Interact with the data.
-  renWin->Render();
-  iren->Initialize();
+    // Increase the size of the render window
+    renWin->SetSize(1280 , 960);
+    renWin->SetWindowName("FitsCubeDemo");
     
+    // Interact with the data.
+    renWin->Render();
+    iren->Initialize();
+    iren->Start();
 
-  iren->Start();
-
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
