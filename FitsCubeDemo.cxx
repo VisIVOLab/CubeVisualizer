@@ -35,6 +35,10 @@
 #include <vtkFrustumSource.h>
 #include <vtkAlgorithmOutput.h>
 
+#include <sys/time.h>  // Per utilizzare la funzione "gettimeofday" per prendere il tempo.
+
+using namespace std;  // Per utilizzare "cin", "cout" e "cerr".
+
 //SetRequestedRenderModeToGPU
 int main(int argc, char* argv[])
 {
@@ -60,7 +64,19 @@ int main(int argc, char* argv[])
     
     auto reader = vtkSmartPointer<vtkFitsReader>::New();
     reader->SetFileName(argv[1]);
+    
+    struct timeval start, end;
+    double time_taken;
+    
+    gettimeofday(&start, NULL);
+    
     reader->ReadDataAndCalculateRMS();
+    
+    gettimeofday(&end, NULL);
+        time_taken = (end.tv_sec - start.tv_sec) * 1e6;
+        time_taken = (time_taken + (end.tv_usec - start.tv_usec)) * 1e-6;
+    
+    cout<<"Time taken by the function 'ReadDataAndCalculateRMS()' = "<<time_taken<<" s"<<endl;
 
     vtkStructuredPoints *out=reader->GetOutput();
 
