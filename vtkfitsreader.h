@@ -87,7 +87,7 @@ protected:
     float **minmaxslice;
 
 
-    virtual int FillOutputPortInformation( int port, vtkInformation* info );
+    virtual int FillOutputPortInformation( int port, vtkInformation* info) override;
 
 private:
     //  vtkFitsReader( const vtkFitsReader& ); // Not implemented.
