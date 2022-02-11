@@ -383,7 +383,6 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
     
     scalars->Allocate(npixels);
     
-    int bad=0;
     int slice;
     int num=0;
 
@@ -422,19 +421,32 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
 //    cout<<"itntotal_after = "<<itntotal<<endl;
 //    cout<<"itntotal/2 = "<<itntotal/2<<endl;
     
-    double *meansquare_local;
-    meansquare_local = new double[itntotal];
+    double *bad_local;   // Modifica per la parallelizzazione
+    bad_local = new double[itntotal];   // Modifica per la parallelizzazione
+    int bad=0;
+    
+    double *meansquare_local;   // Modifica per la parallelizzazione
+    meansquare_local = new double[itntotal];   // Modifica per la parallelizzazione
     double meansquare=0;
     
 
     cout<<"The code runs on "<<omp_get_num_threads( )<<" OpenMP threads before the parallel region!"<<endl;
-    #pragma omp parallel
-    {
-//        omp_set_num_threads(2);
-        cout<<"The code runs on "<<omp_get_num_threads( )<<" OpenMP threads inside the parallel region!"<<endl;
-    }
     
-//    #pragma omp parallel for
+#pragma omp parallel private(npixels, nbuffer, fpixel, buffer, num, slice, datamin, datamax) shared(bad_local, meansquare_local)
+{
+    cout<<"The code runs on "<<omp_get_num_threads()<<" OpenMP threads inside the parallel region!"<<endl;
+    
+    /* Inizializzazione delle variabili "private" su ogni thread di OpenMP */
+    npixels = npixelstot;  // In ogni thread di OpenMP, npixels viene inizializzato al numero totale di pixels nel cubo FITS, npixelstot.
+    nbuffer = 0;
+    fpixel = 0;
+//    for (int i = 0; i < buffsize; i++) buffer[i] = 0.0;
+    num = 0;
+    slice = 0;
+    datamin  = 1.0E30;
+    datamax  = -1.0E30;
+    
+    #pragma omp for reduction(+: bad) reduction(+: meansquare)
     for (long itncounter = 0; itncounter < itntotal; itncounter++) {
         
         gettimeofday(&start, NULL);
@@ -451,7 +463,7 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
         
         num = itncounter*nbuffer;
         for (long ii = 0; ii < nbuffer; ii++)  {
-            slice= ((num + ii)/ (naxes[0]*naxes[1]) );
+            slice = ((num + ii)/ (naxes[0]*naxes[1]) );
 
             if (std::isnan(buffer[ii]))
                 buffer[ii] = -1000000.0;
@@ -476,14 +488,15 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
 
             }
             else
-                bad++;
+                bad_local[itncounter] = bad_local[itncounter] + 1;   // Modifica per la parallelizzazione
         }
+        
+        bad = bad + bad_local[itncounter];
+        meansquare = meansquare + meansquare_local[itncounter];
         
         npixels = npixelstot - (itncounter + 1)*nbuffer;
 //        npixels -= nbuffer;
 //        fpixel  += nbuffer;
-        
-        meansquare += meansquare_local[itncounter];
         
         gettimeofday(&end, NULL);
             time_taken = (end.tv_sec - start.tv_sec) * 1e6;
@@ -491,7 +504,7 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
 
         cout<<"Time taken by iteration "<<itncounter<<" of the while loop' = "<<time_taken<<" s"<<endl;
     }
-    
+}
     gettimeofday(&end1, NULL);
         time_taken1 = (end1.tv_sec - start1.tv_sec) * 1e6;
         time_taken1 = (time_taken1 + (end1.tv_usec - start1.tv_usec)) * 1e-6;
