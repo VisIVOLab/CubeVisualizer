@@ -18,10 +18,13 @@
 
 #include <sys/time.h>  // Per utilizzare la funzione "gettimeofday" per prendere il tempo.
 
-#include <omp.h>
+//#include <omp.h>
+#include "vtkSMPTools.h"
 
 //vtkCxxRevisionMacro(vtkFitsReader, "$Revision: 1.1 $");
 vtkStandardNewMacro(vtkFitsReader);
+
+using namespace std;
 
 //----------------------------------------------------------------------------
 vtkFitsReader::vtkFitsReader()
@@ -305,6 +308,71 @@ double vtkFitsReader::GetRMS() {
 
 //__global__ void min_max_Kernel ()
 
+//int a[3] = {1, 1, 1};
+//int b[3] = {2, 2, 2};
+//int c[3] = {0, 0, 0};
+
+//for (int i = 0; i < 3; i++)
+//{
+//    a[i] = 1;
+//    b[i] = 2;
+//    c[i] = 0;
+//}
+
+//template <class IteratorT>
+//class ExampleFunctor_1
+//{
+//    void operator()(IteratorT begin, IteratorT end)
+//    {
+//        for (IteratorT it = 0; it < 3; it++)
+//        {
+//            c[it] = a[it] + b[it];
+//        }
+//    }
+//};
+
+//void My_Functor(int a_scalar, int b_scalar, int c_scalar)
+//{
+//    c_scalar = a_scalar + b_scalar;
+//}
+
+//template <class IteratorT>
+//void operator()(IteratorT begin, IteratorT end, int *a, int *b, int *c)
+//{
+//    for(int it = begin; it < end; it ++)
+//    {
+//        c[it] = a[it] + b[it];
+//    }
+//}
+
+//template <class T>
+//class ExampleFunctor_1
+//{
+//    T *a_vector;
+//    T *b_vector;
+//    T *c_vector;
+//    void operator()(vtkIdType begin, vtkIdType end)
+//    {
+//        for (vtkIdType index = begin; index < end; index++)
+//        {
+//            *c_vector = *a_vector + *b_vector;
+//            a_vector++;
+//            b_vector++;
+//            c_vector++;
+//        }
+//    }
+//};
+//template <class T>
+//ExampleFunctor_1<T> func;
+//
+//int a[3] = {1, 1, 1};
+//int b[3] = {2, 2, 2};
+//int c[3] = {0, 0, 0};
+//
+//func.a_vector = a;
+//func.b_vector = b;
+//func.c_vector = c;
+
 
 void vtkFitsReader::ReadDataAndCalculateRMS() {
     
@@ -312,6 +380,181 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
     double time_taken, time_taken1;
     
     gettimeofday(&start, NULL);
+    
+//    static const char* vtkSMPTools::GetBackend    (        )
+
+    
+//    printf("The current VTK backend is the %s backend\n",vtkSMPTools::GetBackend());
+//    vtkSMPTools::SetBackend (TBB);
+    
+    
+//    ExampleFunctor_1<std::set<int>::iterator> worker;
+//    vtkSMPTools::For(0, 3, 1, worker);
+    
+//    for (int i = 0; i < 3; i++) printf("Output of 'c' vector from vtkSMPTools::For() function: c[%d] = %d\n",i,c[i]);
+    
+    
+    
+//    int a[3] = {1, 1, 1};
+//    int b[3] = {2, 2, 2};
+//    int c[3] = {0, 0, 0};
+    
+//    vtkSMPTools::For(0, 2, 1,
+//       [](std::set<int>::iterator 0, std::set<int>::iterator 2) {
+//         // Do stuff
+//        c[it] = a[it] + b[it];
+//       });
+    
+//    vtkSMPTools::For(0,2,My_Functor);
+
+//    vtkSMPTools::For();
+    
+////    vector<int> myvector;
+//    vector<int> container;
+//
+//    int a[3] = {1, 1, 1};
+//    int b[3] = {2, 2, 2};
+//    int c[3] = {0, 0, 0};
+//
+////    myvector.assign(a, a + 3);
+////    myvector.assign(b, b + 3);
+////    myvector.assign(c, c + 3);
+//    container.assign(a, a + 3);
+//    container.assign(b, b + 3);
+//    container.assign(c, c + 3);
+//
+////    vtkSMPTools::For(myvector.begin(), myvector.end(), 1,
+////                     [](vector<int>::iterator it = myvector.begin(); it != myvector.end(); ++it) {
+////         // Do stuff
+////        c[it] = a[it] + b[it];
+////       });
+//
+//    vtkSMPTools::For(container.begin(), container.end(), 5,
+//       [](std::set<int>::iterator begin, std::set<int>::iterator end) {
+//         // Do stuff
+//        c* = a* + b*;
+//       });
+    
+    int myints[] = {75,23,65,42,13};
+      set<int> myset (myints,myints+5);
+
+      cout << "myset contains:";
+      for (set<int>::iterator it=myset.begin(); it!=myset.end(); ++it)
+        cout << ' ' << *it;
+
+      cout << '\n';
+    cout<<"--------------------------"<<endl;
+    
+    cout << "The double of myset contains:";
+    for (set<int>::iterator it=myset.begin(); it!=myset.end(); ++it)
+      cout << ' ' << *it+*it;
+
+    cout << '\n';
+    cout<<"--------------------------"<<endl;
+    
+    int myints_1[] = {1,2,3,4,5};
+    set<int> myset_1 (myints_1,myints_1+5);
+    
+    cout << "myset + myset_1 contains:";
+    for (set<int>::iterator it=myset.begin(),it_1=myset_1.begin(); it!=myset.end(), it_1!=myset_1.end(); ++it, ++it_1)
+        cout << ' ' << *it+*it_1;
+    
+    cout << '\n';
+    cout<<"--------------------------"<<endl;
+    
+    vector<int> myvector (myints,myints+5);
+    cout << "The double of myvector contains:";
+    
+    for (vector<int>::iterator it=myvector.begin(); it!=myvector.end(); ++it)
+        cout << ' ' << *it+*it;
+    
+    cout << '\n';
+    cout<<"--------------------------"<<endl;
+    
+    vector<int> myvector_1 (myints_1,myints_1+5);
+    
+    cout << "myvector + myvector_1 contains:";
+    for (vector<int>::iterator it=myvector.begin(),it_1=myvector_1.begin(); it!=myvector.end(), it_1!=myvector_1.end(); ++it, ++it_1)
+        cout << ' ' << *it+*it_1;
+    
+    cout << '\n';
+    cout<<"--------------------------"<<endl;
+    
+    int myints_2[] = {0,0,0,0,0};
+    vector<int> myvector_2 (myints_2,myints_2+5);
+    
+    cout << "myvector_2 = myvector + myvector_1 contains:";
+    for (vector<int>::iterator it=myvector.begin(),it_1=myvector_1.begin(), it_2=myvector_2.begin(); it!=myvector.end(), it_1!=myvector_1.end(), it_2!=myvector_2.end(); ++it, ++it_1, ++it_2)
+    {
+        *it_2 = *it+*it_1;
+        cout << ' ' << *it_2;
+    }
+    
+    cout << '\n';
+    cout<<"--------------------------"<<endl;
+    
+    cout<<"myvector before is: ";
+    for (vector<int>::iterator it=myvector.begin(); it!=myvector.end(); ++it)
+    {
+        cout << ' ' << *it;
+    }
+    cout<<endl;
+    
+//    Lambda functions guide: https://docs.microsoft.com/it-it/cpp/cpp/lambda-expressions-in-cpp?view=msvc-170
+    vtkSMPTools::For(myvector.begin(), myvector.end(),
+       [](vector<int>::iterator begin, vector<int>::iterator end) {
+         // Do stuff
+        for (auto it=begin; it!=end; ++it)
+          *it = *it + *it;
+       });
+    
+    cout<<"myvector after is: ";
+    for (vector<int>::iterator it=myvector.begin(); it!=myvector.end(); ++it)
+    {
+        cout << ' ' << *it;
+    }
+    cout<<endl;
+    
+    vtkSMPTools::For(0, 5,
+       [&myvector,&myvector_1,&myvector_2](int begin, int end) {
+         // Do stuff
+        for (auto it=begin; it!=end; ++it)
+            myvector_2[it] = myvector[it] + myvector_1[it];
+       });
+    
+    cout<<"myvector_2 after is: ";
+    for (int it = 0; it < 5; it++)
+    {
+        cout << ' ' << myvector_2[it];
+    }
+    cout<<endl;
+    
+    auto my_Lambda_function = [&myvector,&myvector_1,&myvector_2](int begin, int end) {
+        // Do stuff
+       for (auto it=begin; it!=end; ++it)
+           myvector_2[it] = myvector[it] + myvector_1[it];
+    };
+    
+    vtkSMPTools::For(0, 5, my_Lambda_function);
+    
+    cout<<"myvector_2 after after is: ";
+    for (int it = 0; it < 5; it++)
+    {
+        cout << ' ' << myvector_2[it];
+    }
+    cout<<endl;
+    
+//    vtkSMPTools::For(myvector.begin(), myvector_1.begin(), myvector_2.begin(), myvector.end(), myvector_1.end(), myvector_2.end(), 1,
+//       [](vector<int>::iterator it, std::set<int>::iterator it_1, std::set<int>::iterator it_2) {
+//         // Do stuff
+//        for (it=myvector.begin(),it_1=myvector_1.begin(), it_2=myvector_2.begin(); it!=myvector.end(), it_1!=myvector_1.end(), it_2!=myvector_2.end(); ++it, ++it_1, ++it_2)
+//        {
+//            *it_2 = *it+*it_1;
+//            cout << ' ' << *it_2;
+//        }
+//       });
+    
+    
     
     ReadHeader();
     
@@ -430,11 +673,11 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
     double meansquare=0;
     
 
-    cout<<"The code runs on "<<omp_get_num_threads( )<<" OpenMP threads before the parallel region!"<<endl;
+//    cout<<"The code runs on "<<omp_get_num_threads( )<<" OpenMP threads before the parallel region!"<<endl;
     
-#pragma omp parallel private(npixels, nbuffer, fpixel, buffer, num, slice, datamin, datamax) shared(bad_local, meansquare_local)
-{
-    cout<<"The code runs on "<<omp_get_num_threads()<<" OpenMP threads inside the parallel region!"<<endl;
+//#pragma omp parallel private(npixels, nbuffer, fpixel, buffer, num, slice, datamin, datamax) shared(bad_local, meansquare_local)
+//{
+//    cout<<"The code runs on "<<omp_get_num_threads()<<" OpenMP threads inside the parallel region!"<<endl;
     
     /* Inizializzazione delle variabili "private" su ogni thread di OpenMP */
     npixels = npixelstot;  // In ogni thread di OpenMP, npixels viene inizializzato al numero totale di pixels nel cubo FITS, npixelstot.
@@ -446,7 +689,7 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
     datamin  = 1.0E30;
     datamax  = -1.0E30;
     
-    #pragma omp for reduction(+: bad) reduction(+: meansquare)
+//    #pragma omp for reduction(+: bad) reduction(+: meansquare)
     for (long itncounter = 0; itncounter < itntotal; itncounter++) {
         
         gettimeofday(&start, NULL);
@@ -504,7 +747,7 @@ void vtkFitsReader::ReadDataAndCalculateRMS() {
 
         cout<<"Time taken by iteration "<<itncounter<<" of the while loop' = "<<time_taken<<" s"<<endl;
     }
-}
+//}
     gettimeofday(&end1, NULL);
         time_taken1 = (end1.tv_sec - start1.tv_sec) * 1e6;
         time_taken1 = (time_taken1 + (end1.tv_usec - start1.tv_usec)) * 1e-6;
